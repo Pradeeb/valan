@@ -13,10 +13,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.valan.configurations.JwtProvider;
+import com.valan.model.TwoFactorOTP;
 import com.valan.model.User;
 import com.valan.repository.UserRepository;
 import com.valan.responses.AuthResponse;
 import com.valan.service.CustomUserDetailsService;
+import com.valan.service.TwoFactorOtpService;
+import com.valan.utils.OtpUtils;
 
 @RestController
 @RequestMapping("/auth")
@@ -27,6 +30,9 @@ public class AuthController {
 
 	@Autowired
 	private CustomUserDetailsService customUserDetailService;
+	
+	@Autowired
+	private TwoFactorOtpService twoFactorOtpService;
 
 	@PostMapping("/signup")
 	public ResponseEntity<AuthResponse> register(@RequestBody User user) throws Exception {
@@ -70,12 +76,21 @@ public class AuthController {
 
 		UsernamePasswordAuthenticationToken auth = authenticate(userName, password);
 		String jwt = JwtProvider.genrateToken(auth);
+		
+		if(user.getTwoFactorAuth().isEnable()) {
+			AuthResponse res=new AuthResponse();
+			res.setMessage("Two factor athentication is enanbel");
+			res.setTwoFactorAuthEnabled(true);
+			String otp=OtpUtils.genarateOTP();
+			
+			TwoFactorOTP oldTowFactorOtp=twoFactorOtpService.findByUser(user.getId());
+		}
 
 		AuthResponse res = new AuthResponse();
 		res.setJwt(jwt);
 		res.setStatus(true);
 		res.setMessage("Loginsucces Success");
-		return new ResponseEntity<>(res, HttpStatus.CREATED);
+		return new ResponseEntity<>(res, HttpStatus.OK);
 	}
 
 	private UsernamePasswordAuthenticationToken authenticate(String userName, String password) {
